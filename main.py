@@ -1,6 +1,7 @@
 import os
+import json
 
-from flask import Flask
+from flask import Flask, request
 
 app = Flask(__name__)
 
@@ -12,6 +13,12 @@ except RuntimeError:
 @app.route("/")
 def index():
     return "Index"
+
+@app.route("/verify", methods=['POST'])
+def verify():
+    payload = json.loads(request.data)
+    print payload
+
 
 if __name__ == "__main__":
     app.run(port=int(os.getenv('PORT', 5000)))
