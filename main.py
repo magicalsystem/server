@@ -1,5 +1,6 @@
 import os
 import json
+from functools import wraps
 
 from flask import Flask, request
 from pymongo import MongoClient
@@ -19,16 +20,20 @@ def verify_user_message(mongo, msgobj):
         verified = auth.verify(msgobj['signature'], msgobj['message'].encode('utf-8'), str(k['key']))
         if verified:
             break
-    return verified
+    return verified, user
 
 
 def auth_required(f, *args, **kwargs):
     """ Authorization required decorator
     """
+    @wraps(f)
     def inner_func():
         payload = json.loads(request.data)
-        if verify_user_message(mongo, payload):
-            return f(*args, **kwargs)
+        outcome, user = verify_user_message(mongo, payload)
+        if outcome:
+            return f(user=user, 
+                     message=json.loads(payload['message']),
+                     *args, **kwargs)
         else:
             return json.dumps({'error': 'Access denied'}), 401
     return inner_func
@@ -44,17 +49,21 @@ def index():
 
 @app.route("/verify", methods=['POST'])
 @auth_required
-def verify():
+def verify(user, message):
     return json.dumps({'message': 'OK'}), 200
 
 @app.route("/keys/add", methods=['POST'])
-def keys_add():
-    payload = json.loads(request.data)
-    msg = json.loads(payload['message'])
-    user = mongo.users.find_one({"username": msg["username"]})
-    mongo.public_keys.insert({"user": user['_id'], "key": msg['public_key']})
+@auth_required
+def keys_add(user, message):
+    # TODO: add user rights
+    target = mongo.users.find_one({'username': message['username']})
+    mongo.public_keys.insert(
+            {
+                "user": target['_id'], 
+                "key": message['public_key']
+            })
 
-    return "", 200
+    return json.dumps({'message': 'Key added'}), 200
 
 if __name__ == "__main__":
     if os.getenv('DEBUG') is not None:
