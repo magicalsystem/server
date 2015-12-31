@@ -65,6 +65,28 @@ def keys_add(user, message):
 
     return json.dumps({'message': 'Key added'}), 200
 
+
+@app.route("/groups/update", methods=["POST"])
+@auth_required
+def groups_update(user, message):
+    for g in message:
+        mongo.groups.update(
+                {"_id": g['name']},
+                g,
+                upsert=True)
+    return json.dumps({'message': 'Groups updated'}), 200
+
+
+@app.route("/servers/update", methods=["POST"])
+@auth_required
+def servers_update(user, message):
+    for g in message:
+        mongo.servers.update(
+                {"_id": g['name']},
+                g,
+                upsert=True)
+    return json.dumps({'message': 'Servers updated'}), 200
+
 if __name__ == "__main__":
     if os.getenv('DEBUG') is not None:
         app.debug = True
