@@ -76,6 +76,15 @@ def groups_update(user, message):
                 upsert=True)
     return json.dumps({'message': 'Groups updated'}), 200
 
+@app.route("/groups", methods=["POST"])
+@auth_required
+def groups_list(user, message):
+    return json.dumps(list(mongo.groups.find())), 200
+
+@app.route("/servers", methods=["POST"])
+@auth_required
+def servers_list(user, message):
+    return json.dumps(list(mongo.servers.find())), 200
 
 @app.route("/servers/update", methods=["POST"])
 @auth_required
@@ -86,6 +95,7 @@ def servers_update(user, message):
                 g,
                 upsert=True)
     return json.dumps({'message': 'Servers updated'}), 200
+
 
 if __name__ == "__main__":
     if os.getenv('DEBUG') is not None:
