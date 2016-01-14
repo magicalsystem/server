@@ -38,6 +38,31 @@ def auth_required(f, *args, **kwargs):
             return json.dumps({'error': 'Access denied'}), 401
     return inner_func
 
+def ansible_dynamic_inventory(groups, hosts):
+    inv = dict()
+    ancestors = dict()
+
+    for g in groups:
+        inv[g['name']] = {
+                'hosts': list(),
+                'vars': g['vars'],
+                }
+        ancestors[g['name']] = g['ancestors']
+
+    inv['_meta'] = {'hostvars': dict()}
+    
+    for h in hosts:
+        inv['_meta']['hostvars'][h['name']] = h['vars']
+        
+        for g in h['groups']:
+            inv[g]['hosts'].append(h['name'])
+
+            #  append to ancestor group
+            for a in ancestors[g]:
+                if h['name'] not in inv[a]['hosts']:
+                    inv[a]['hosts'].append(h['name'])
+    return inv
+
 try:
     app.config.from_envvar('MAIN_CFG')
 except RuntimeError:
@@ -96,6 +121,14 @@ def servers_update(user, message):
                 upsert=True)
     return json.dumps({'message': 'Servers updated'}), 200
 
+@app.route("/ansible/inv", methods=["POST"])
+@auth_required
+def ansible_di(user, message):
+    hosts = mongo.servers.find()
+    groups = mongo.groups.find()
+
+    di = ansible_dynamic_inventory(groups, hosts)
+    return json.dumps(di), 200
 
 if __name__ == "__main__":
     if os.getenv('DEBUG') is not None:
