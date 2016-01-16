@@ -63,6 +63,16 @@ def ansible_dynamic_inventory(groups, hosts):
                     inv[a]['hosts'].append(h['name'])
     return inv
 
+def criteria2mongo(criteria):
+    def _or_group(k, vs):
+        return {'$or': [{k: v} for v in vs]}
+
+    return {
+            '$and': [_or_group(k, vs) 
+                     for k, vs in criteria.iteritems()]
+    }
+
+
 try:
     app.config.from_envvar('MAIN_CFG')
 except RuntimeError:
@@ -104,12 +114,14 @@ def groups_update(user, message):
 @app.route("/groups", methods=["POST"])
 @auth_required
 def groups_list(user, message):
-    return json.dumps(list(mongo.groups.find())), 200
+    query = criteria2mongo(message['pattern'])
+    return json.dumps(list(mongo.groups.find(query))), 200
 
 @app.route("/servers", methods=["POST"])
 @auth_required
 def servers_list(user, message):
-    return json.dumps(list(mongo.servers.find())), 200
+    query = criteria2mongo(message['pattern'])
+    return json.dumps(list(mongo.servers.find(query))), 200
 
 @app.route("/servers/update", methods=["POST"])
 @auth_required
@@ -124,7 +136,8 @@ def servers_update(user, message):
 @app.route("/ansible/inv", methods=["POST"])
 @auth_required
 def ansible_di(user, message):
-    hosts = mongo.servers.find()
+    query = criteria2mongo(message['pattern'])
+    hosts = mongo.servers.find(query)
     groups = mongo.groups.find()
 
     di = ansible_dynamic_inventory(groups, hosts)
