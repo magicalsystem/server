@@ -211,7 +211,27 @@ def ansible_di(user, message):
     di = ansible_dynamic_inventory(groups, hosts)
     return json.dumps(di), 200
 
+def do_install():
+    mongo.users.remove()
+    mongo.servers.remove()
+    mongo.groups.remove()
+    mongo.public_keys.remove()
+
+    username = raw_input("Username:")
+    pk = raw_input("Public key:")
+
+    mongo.users.insert({'_id': username, 'username': username})
+    mongo.public_keys.insert({'user': username, 'key': pk})
+
 if __name__ == "__main__":
+    import sys
+    try:
+        if sys.argv[1] == "install":
+            do_install()
+            raise SystemExit()
+    except IndexError:
+        pass
+
     if os.getenv('DEBUG') is not None:
         app.debug = True
     app.run(port=int(os.getenv('PORT', 5000)))
