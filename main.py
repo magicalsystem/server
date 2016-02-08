@@ -133,7 +133,7 @@ def keys_show(user, message):
 @auth_required
 def users_list(user, message):
     users = mongo.users.find()
-    return json.dumps({'message': users}), 200
+    return json.dumps({'message': list(users)}), 200
 
 @app.route("/users/update")
 @auth_required
