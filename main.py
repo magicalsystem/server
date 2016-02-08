@@ -91,12 +91,12 @@ except RuntimeError:
 def index():
     return "Index"
 
-@app.route("/verify", methods=['POST'])
+@app.route("/users/verify", methods=['POST'])
 @auth_required
 def verify(user, message):
     return json.dumps({'message': 'OK'}), 200
 
-@app.route("/keys/add", methods=['POST'])
+@app.route("/users/keys/add", methods=['POST'])
 @auth_required
 def keys_add(user, message):
     # TODO: add user rights
@@ -109,6 +109,44 @@ def keys_add(user, message):
 
     return json.dumps({'message': 'Key added'}), 200
 
+@app.route("/users/keys", methods=['POST'])
+@auth_required
+def keys_list(user, message):
+    target = mongo.users.find_one({'username': message['username']})
+    pks = mongo.public_keys.find({'user': target['_id']})
+    return json.dumps({'message': pks}), 200
+
+@app.route("/users/keys/del", methods=['POST'])
+@auth_required
+def keys_del(user, message):
+    target = mongo.users.find_one({'username': message['username']})
+    mongo.public_keys.remove({'_id': message['key_id']})
+    return json.dumps({'message': 'Key deleted'}), 200
+
+@app.route("/users/keys/show", methods=["POST"])
+@auth_required
+def keys_show(user, message):
+    pk = mongo.public_keys.find_one({'_id': message['key_id']})
+    return json.dumps({'message': pk}), 200
+
+@app.route("/users")
+@auth_required
+def users_list(user, message):
+    users = mongo.users.find()
+    return json.dumps({'message': users}), 200
+
+@app.route("/users/update")
+@auth_required
+def users_update(user, message):
+    mongo.users.update({"_id": message['username']},
+        message, upsert=True)
+    return json.dumps({'message': 'User updated'}), 200
+
+@app.route("/users/del")
+@auth_required
+def users_del(user, message):
+    mongo.users.remove({"_id": message['username']})
+    return json.dumps({'message': 'User deleted'}), 200
 
 @app.route("/groups/update", methods=["POST"])
 @auth_required
@@ -136,6 +174,7 @@ def groups_del(user, message):
     mongo.servers.update({'groups': name}, 
                          {'$pull': {'groups': name}}, 
                          {'multi': True})
+    return json.dumps({'message': 'Group deleted'}), 200
 
 
 @app.route("/servers", methods=["POST"])
@@ -153,6 +192,14 @@ def servers_update(user, message):
                 g,
                 upsert=True)
     return json.dumps({'message': 'Servers updated'}), 200
+
+@app.route("/servers/del", methods=["POST"])
+@auth_required
+def servers_del(user, message):
+    name = message['name']
+    mongo.servers.remove({'_id': name})
+    return json.dumps({'message': 'Server deleted'}), 200
+
 
 @app.route("/ansible/inv", methods=["POST"])
 @auth_required
