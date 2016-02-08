@@ -26,7 +26,7 @@ def auth_public_keys(mongo, msgobj):
 def auth_none(mongo, msgobj):
     return True, dict()
 
-AUTH_MODULE = very_user_message
+AUTH_MODULE = auth_public_keys
 
 
 def auth_required(f, *args, **kwargs):
@@ -70,6 +70,9 @@ def ansible_dynamic_inventory(groups, hosts):
     return inv
 
 def criteria2mongo(criteria):
+    if not(criteria):
+        return {}
+
     def _or_group(k, vs):
         return {'$or': [{k: v} for v in vs]}
 
@@ -122,6 +125,18 @@ def groups_update(user, message):
 def groups_list(user, message):
     query = criteria2mongo(message['pattern'])
     return json.dumps(list(mongo.groups.find(query))), 200
+
+@app.route("/groups/del", methods=["POST"])
+@auth_required
+def groups_del(user, message):
+    name = message['name']
+    mongo.groups.remove({'_id': name})
+
+    #servers = mongo.servers.find({'groups': name})
+    mongo.servers.update({'groups': name}, 
+                         {'$pull': {'groups': name}}, 
+                         {'multi': True})
+
 
 @app.route("/servers", methods=["POST"])
 @auth_required
