@@ -10,7 +10,8 @@ import auth
 app = Flask(__name__)
 mongo = MongoClient()['magicalsystem']
 
-def verify_user_message(mongo, msgobj):
+
+def auth_public_keys(mongo, msgobj):
     user = mongo.users.find_one({'username': msgobj['username']})
     keys = mongo.public_keys.find({'user': user['_id']})
 
@@ -22,6 +23,11 @@ def verify_user_message(mongo, msgobj):
             break
     return verified, user
 
+def auth_none(mongo, msgobj):
+    return True, dict()
+
+AUTH_MODULE = very_user_message
+
 
 def auth_required(f, *args, **kwargs):
     """ Authorization required decorator
@@ -29,7 +35,7 @@ def auth_required(f, *args, **kwargs):
     @wraps(f)
     def inner_func():
         payload = json.loads(request.data)
-        outcome, user = verify_user_message(mongo, payload)
+        outcome, user = AUTH_MODULE(mongo, payload)
         if outcome:
             return f(user=user, 
                      message=json.loads(payload['message']),
