@@ -51,15 +51,17 @@ def ansible_dynamic_inventory(groups, hosts):
     for g in groups:
         inv[g['name']] = {
                 'hosts': list(),
-                'vars': g['vars'],
+                'vars': g['vars'] if 'vars' in g.keys() else {},
                 }
-        ancestors[g['name']] = g['ancestors']
+        ancestors[g['name']] = g['ancestors'] if 'ancestors' in g.keys() else []
 
     inv['_meta'] = {'hostvars': dict()}
     
     for h in hosts:
-        inv['_meta']['hostvars'][h['name']] = h['vars']
+        inv['_meta']['hostvars'][h['name']] = h['vars'] if 'vars' in h.keys() else []
         
+        if 'groups' not in h.keys():
+            h['groups'] = []
         for g in h['groups']:
             inv[g]['hosts'].append(h['name'])
 
