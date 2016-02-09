@@ -129,7 +129,7 @@ def keys_show(user, message):
     pk = mongo.public_keys.find_one({'_id': message['key_id']})
     return json.dumps({'message': pk}), 200
 
-@app.route("/users")
+@app.route("/users", methods=["POST"])
 @auth_required
 def users_list(user, message):
     users = mongo.users.find()
@@ -142,7 +142,7 @@ def users_update(user, message):
         message, upsert=True)
     return json.dumps({'message': 'User updated'}), 200
 
-@app.route("/users/del")
+@app.route("/users/del", methods=["POST"])
 @auth_required
 def users_del(user, message):
     mongo.users.remove({"_id": message['username']})
