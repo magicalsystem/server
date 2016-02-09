@@ -135,7 +135,7 @@ def users_list(user, message):
     users = mongo.users.find()
     return json.dumps({'message': list(users)}), 200
 
-@app.route("/users/update")
+@app.route("/users/update", methods=["POST"])
 @auth_required
 def users_update(user, message):
     mongo.users.update({"_id": message['username']},
